@@ -45,7 +45,7 @@ my ( $count_sql, @count_bind_params ) = @{ ${ $rs->count_rs->as_query } };
 my @count_bind_values = map { pop @$_ } @count_bind_params;
 
 $rs = $rs->search( undef, { rows => 2 } );
-my @expected = $rs->all;
+my $expected_r = [ $rs->all ];
 my ( $data_sql, @data_bind_params ) = @{ ${ $rs->as_query } };
 my @data_bind_values = map { pop @$_ } @data_bind_params;
 
@@ -76,9 +76,9 @@ Mojo::IOLoop->delay(
 
 		# ...construct results manually
 		$rs->{_stashed_rows} = $data_r;
-		my @rows = @{ $rs->_construct_results('fetch_all') };
+		my $rows_r = $rs->_construct_results('fetch_all');
 
-		cmp_deeply \@rows, \@expected;
+		cmp_deeply $rows_r, $expected_r;
 
 		# Third query results
 		diag sprintf( 'Count: %i', $count->array->[0] );
