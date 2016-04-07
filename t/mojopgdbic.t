@@ -59,7 +59,7 @@ Mojo::IOLoop->delay(
 		# Second query, get some data
 		$pg->db->query( $data_sql => @data_bind_values => $delay->begin );
 
-		# Third query, get the count (has same bind params as data)
+		# Third query, get the count
 		$pg->db->query( $count_sql => @count_bind_values => $delay->begin );
 	},
 	sub {
