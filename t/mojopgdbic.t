@@ -2,6 +2,7 @@ use Mojo::Base -strict;
 
 use Test::More;
 use Test::Mojo;
+use Test::Deep;
 
 use lib 'lib';
 
@@ -10,7 +11,7 @@ my $schema = $t->app->schema;
 
 $schema->deploy( { add_drop_table => 1, } );
 
-$schema->resultset('Company')->populate(
+my @companies = $schema->resultset('Company')->populate(
 	[
 		{
 			name     => 'ACME',
@@ -44,6 +45,7 @@ my ( $count_sql, @count_bind_params ) = @{ ${ $rs->count_rs->as_query } };
 my @count_bind_values = map { pop @$_ } @count_bind_params;
 
 $rs = $rs->search( undef, { rows => 2 } );
+my @expected = $rs->all;
 my ( $data_sql, @data_bind_params ) = @{ ${ $rs->as_query } };
 my @data_bind_values = map { pop @$_ } @data_bind_params;
 
@@ -63,20 +65,20 @@ Mojo::IOLoop->delay(
 		$pg->db->query( $count_sql => @count_bind_values => $delay->begin );
 	},
 	sub {
-		my ( $delay, $time_err, $time, $stuffs_err, $stuffs, $count_err, $count ) = @_;
-		if ( my $err = $time_err || $stuffs_err || $count_err ) { die $err }
+		my ( $delay, $time_err, $time, $companies_err, $companies, $count_err, $count ) = @_;
+		if ( my $err = $time_err || $companies_err || $count_err ) { die $err }
 
 		# First query results
 		diag $time->hash->{now};
 
 		# Second query results
-		my $data_r = $stuffs->arrays->to_array;
-		diag explain $data_r;
+		my $data_r = $companies->arrays->to_array;
 
 		# ...construct results manually
 		$rs->{_stashed_rows} = $data_r;
-		my @rows = $rs->_construct_results('fetch_all');
-		diag explain \@rows;
+		my @rows = @{ $rs->_construct_results('fetch_all') };
+
+		cmp_deeply \@rows, \@expected;
 
 		# Third query results
 		diag sprintf( 'Count: %i', $count->array->[0] );
